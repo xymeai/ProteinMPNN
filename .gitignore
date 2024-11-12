@@ -72,7 +72,7 @@ instance/
 docs/_build/
 
 # PyBuilder
-target/
+target/∏
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+.idea/
+
+.ruff_cache/

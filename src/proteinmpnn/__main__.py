@@ -1,8 +1,7 @@
-import argparse
 import copy
 import json
+import logging
 import os
-import os.path
 import random
 import subprocess
 import sys
@@ -11,7 +10,8 @@ import time
 import numpy as np
 import torch
 
-from protein_mpnn_utils import (
+from proteinmpnn import cli
+from proteinmpnn.utils import (
     ProteinMPNN,
     StructureDataset,
     StructureDatasetPDB,
@@ -22,8 +22,11 @@ from protein_mpnn_utils import (
     tied_featurize,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def main(args):
+    """ """
     if args.seed:
         seed = args.seed
     else:
@@ -48,15 +51,15 @@ def main(args):
 
         # Use CA-only model weights
         if args.ca_only:
-            print("Using CA-ProteinMPNN!")
+            logger.info("Using CA-ProteinMPNN!")
             model_folder_path = os.path.join(file_path, "ca_model_weights")
 
             if args.use_soluble_model:
-                print("WARNING: CA-SolubleMPNN is not available yet")
+                logger.info("WARNING: CA-SolubleMPNN is not available yet")
                 sys.exit()
         else:
             if args.use_soluble_model:
-                print("Using ProteinMPNN trained on soluble proteins only!")
+                logger.info("Using ProteinMPNN trained on soluble proteins only!")
                 model_folder_path = os.path.join(file_path, "soluble_model_weights")
             else:
                 model_folder_path = os.path.join(file_path, "vanilla_model_weights")
@@ -82,9 +85,7 @@ def main(args):
             chain_id_dict = json.loads(json_str)
     else:
         chain_id_dict = None
-        if print_all:
-            print(40 * "-")
-            print("chain_id_jsonl is NOT loaded")
+        logger.warning("chain_id_jsonl is NOT loaded")
 
     if os.path.isfile(args.fixed_positions_jsonl):
         with open(args.fixed_positions_jsonl) as json_file:
@@ -92,9 +93,7 @@ def main(args):
         for json_str in json_list:
             fixed_positions_dict = json.loads(json_str)
     else:
-        if print_all:
-            print(40 * "-")
-            print("fixed_positions_jsonl is NOT loaded")
+        logger.warning("fixed_positions_jsonl is NOT loaded")
         fixed_positions_dict = None
 
     if os.path.isfile(args.pssm_jsonl):
@@ -104,9 +103,7 @@ def main(args):
         for json_str in json_list:
             pssm_dict.update(json.loads(json_str))
     else:
-        if print_all:
-            print(40 * "-")
-            print("pssm_jsonl is NOT loaded")
+        logger.warning("pssm_jsonl is NOT loaded")
         pssm_dict = None
 
     if os.path.isfile(args.omit_AA_jsonl):
@@ -115,9 +112,7 @@ def main(args):
         for json_str in json_list:
             omit_AA_dict = json.loads(json_str)
     else:
-        if print_all:
-            print(40 * "-")
-            print("omit_AA_jsonl is NOT loaded")
+        logger.warning("omit_AA_jsonl is NOT loaded")
         omit_AA_dict = None
 
     if os.path.isfile(args.bias_AA_jsonl):
@@ -126,9 +121,7 @@ def main(args):
         for json_str in json_list:
             bias_AA_dict = json.loads(json_str)
     else:
-        if print_all:
-            print(40 * "-")
-            print("bias_AA_jsonl is NOT loaded")
+        logger.warning("bias_AA_jsonl is NOT loaded")
         bias_AA_dict = None
 
     if os.path.isfile(args.tied_positions_jsonl):
@@ -138,8 +131,7 @@ def main(args):
             tied_positions_dict = json.loads(json_str)
     else:
         if print_all:
-            print(40 * "-")
-            print("tied_positions_jsonl is NOT loaded")
+            logger.warn("tied_positions_jsonl is NOT loaded")
         tied_positions_dict = None
 
     if os.path.isfile(args.bias_by_res_jsonl):
@@ -148,16 +140,11 @@ def main(args):
 
         for json_str in json_list:
             bias_by_res_dict = json.loads(json_str)
-        if print_all:
-            print("bias by residue dictionary is loaded")
-    else:
-        if print_all:
-            print(40 * "-")
-            print("bias by residue dictionary is not loaded, or not provided")
-        bias_by_res_dict = None
 
-    if print_all:
-        print(40 * "-")
+        logger.warning("bias by residue dictionary is loaded")
+    else:
+        logger.warn("bias by residue dictionary is not loaded, or not provided")
+        bias_by_res_dict = None
 
     bias_AAs_np = np.zeros(len(alphabet))
 
@@ -191,7 +178,7 @@ def main(args):
             args.jsonl_path,
             truncate=None,
             max_length=args.max_length,
-            verbose=print_all,
+            verbose=True,
         )
 
     checkpoint = torch.load(checkpoint_path, map_location=device)
@@ -213,13 +200,12 @@ def main(args):
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    if print_all:
-        print(40 * "-")
-        print("Number of edges:", checkpoint["num_edges"])
-        print(f"Training noise level: {noise_level_print}A")
+    logger.warn("Number of edges:", checkpoint["num_edges"])
+    logger.warn(f"Training noise level: {noise_level_print}A")
 
     # Build paths for experiment
     base_folder = folder_for_outputs
+
     if base_folder[-1] != "/":
         base_folder = base_folder + "/"
     if not os.path.exists(base_folder):
@@ -374,18 +360,16 @@ def main(args):
                         S=S[0,].cpu().numpy(),
                         seq_str=seq_str,
                     )
-                    if print_all:
-                        if fc == 0:
-                            print(
-                                f"Score for {name_} from PDB, mean: {ns_mean_print}, std: {ns_std_print}, sample size: {ns_sample_size},  global score, mean: {global_ns_mean_print}, std: {global_ns_std_print}, sample size: {ns_sample_size}"
-                            )
-                        else:
-                            print(
-                                f"Score for {name_}_{fc} from FASTA, mean: {ns_mean_print}, std: {ns_std_print}, sample size: {ns_sample_size},  global score, mean: {global_ns_mean_print}, std: {global_ns_std_print}, sample size: {ns_sample_size}"
-                            )
+                    if fc == 0:
+                        logger.info(
+                            f"Score for {name_} from PDB, mean: {ns_mean_print}, std: {ns_std_print}, sample size: {ns_sample_size},  global score, mean: {global_ns_mean_print}, std: {global_ns_std_print}, sample size: {ns_sample_size}"
+                        )
+                    else:
+                        logger.info(
+                            f"Score for {name_}_{fc} from FASTA, mean: {ns_mean_print}, std: {ns_std_print}, sample size: {ns_sample_size},  global score, mean: {global_ns_mean_print}, std: {global_ns_std_print}, sample size: {ns_sample_size}"
+                        )
             elif args.conditional_probs_only:
-                if print_all:
-                    print(f"Calculating conditional probabilities for {name_}")
+                logger.info(f"Calculating conditional probabilities for {name_}")
                 conditional_probs_only_file = (
                     base_folder + "/conditional_probs_only/" + batch_clones[0]["name"]
                 )
@@ -417,10 +401,8 @@ def main(args):
                     design_mask=mask_out,
                 )
             elif args.unconditional_probs_only:
-                if print_all:
-                    print(
-                        f"Calculating sequence unconditional probabilities for {name_}"
-                    )
+                logger.info(f"Calculating unconditional probabilities for {name_}")
+
                 unconditional_probs_only_file = (
                     base_folder + "/unconditional_probs_only/" + batch_clones[0]["name"]
                 )
@@ -459,17 +441,20 @@ def main(args):
                     S, log_probs, mask_for_loss
                 )  # score only the redesigned part
                 native_score = scores.cpu().data.numpy()
-                global_scores = _scores(
-                    S, log_probs, mask
-                )  # score the whole structure-sequence
+                global_scores = _scores(S, log_probs, mask)
+
+                # score the whole structure-sequence
                 global_native_score = global_scores.cpu().data.numpy()
+
                 # Generate some sequences
                 ali_file = base_folder + "/seqs/" + batch_clones[0]["name"] + ".fa"
                 score_file = base_folder + "/scores/" + batch_clones[0]["name"] + ".npz"
                 probs_file = base_folder + "/probs/" + batch_clones[0]["name"] + ".npz"
-                if print_all:
-                    print(f"Generating sequences for: {name_}")
+
+                logger.info(f"Generating sequences for: {name_}")
+
                 t0 = time.time()
+
                 with open(ali_file, "w") as f:
                     for temp in temperatures:
                         for j in range(NUM_BATCHES):
@@ -702,207 +687,13 @@ def main(args):
                 dt = round(float(t1 - t0), 4)
                 num_seqs = len(temperatures) * NUM_BATCHES * BATCH_COPIES
                 total_length = X.shape[1]
-                if print_all:
-                    print(
-                        f"{num_seqs} sequences of length {total_length} generated in {dt} seconds"
-                    )
+
+                logger.info(
+                    f"{num_seqs} sequences of length {total_length} generated in {dt} "
+                    f"seconds"
+                )
 
 
 if __name__ == "__main__":
-    argparser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-
-    argparser.add_argument(
-        "--suppress_print", type=int, default=0, help="0 for False, 1 for True"
-    )
-
-    argparser.add_argument(
-        "--ca_only",
-        action="store_true",
-        default=False,
-        help="Parse CA-only structures and use CA-only models (default: false)",
-    )
-    argparser.add_argument(
-        "--path_to_model_weights",
-        type=str,
-        default="",
-        help="Path to model weights folder;",
-    )
-    argparser.add_argument(
-        "--model_name",
-        type=str,
-        default="v_48_020",
-        help="ProteinMPNN model name: v_48_002, v_48_010, v_48_020, v_48_030; v_48_010=version with 48 edges 0.10A noise",
-    )
-    argparser.add_argument(
-        "--use_soluble_model",
-        action="store_true",
-        default=False,
-        help="Flag to load ProteinMPNN weights trained on soluble proteins only.",
-    )
-
-    argparser.add_argument(
-        "--seed",
-        type=int,
-        default=0,
-        help="If set to 0 then a random seed will be picked;",
-    )
-
-    argparser.add_argument(
-        "--save_score",
-        type=int,
-        default=0,
-        help="0 for False, 1 for True; save score=-log_prob to npy files",
-    )
-    argparser.add_argument(
-        "--save_probs",
-        type=int,
-        default=0,
-        help="0 for False, 1 for True; save MPNN predicted probabilites per position",
-    )
-
-    argparser.add_argument(
-        "--score_only",
-        type=int,
-        default=0,
-        help="0 for False, 1 for True; score input backbone-sequence pairs",
-    )
-    argparser.add_argument(
-        "--path_to_fasta",
-        type=str,
-        default="",
-        help="score provided input sequence in a fasta format; e.g. GGGGGG/PPPPS/WWW for chains A, B, C sorted alphabetically and separated by /",
-    )
-
-    argparser.add_argument(
-        "--conditional_probs_only",
-        type=int,
-        default=0,
-        help="0 for False, 1 for True; output conditional probabilities p(s_i given the rest of the sequence and backbone)",
-    )
-    argparser.add_argument(
-        "--conditional_probs_only_backbone",
-        type=int,
-        default=0,
-        help="0 for False, 1 for True; if true output conditional probabilities p(s_i given backbone)",
-    )
-    argparser.add_argument(
-        "--unconditional_probs_only",
-        type=int,
-        default=0,
-        help="0 for False, 1 for True; output unconditional probabilities p(s_i given backbone) in one forward pass",
-    )
-
-    argparser.add_argument(
-        "--backbone_noise",
-        type=float,
-        default=0.00,
-        help="Standard deviation of Gaussian noise to add to backbone atoms",
-    )
-    argparser.add_argument(
-        "--num_seq_per_target",
-        type=int,
-        default=1,
-        help="Number of sequences to generate per target",
-    )
-    argparser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="Batch size; can set higher for titan, quadro GPUs, reduce this if running out of GPU memory",
-    )
-    argparser.add_argument(
-        "--max_length", type=int, default=200000, help="Max sequence length"
-    )
-    argparser.add_argument(
-        "--sampling_temp",
-        type=str,
-        default="0.1",
-        help="A string of temperatures, 0.2 0.25 0.5. Sampling temperature for amino acids. Suggested values 0.1, 0.15, 0.2, 0.25, 0.3. Higher values will lead to more diversity.",
-    )
-
-    argparser.add_argument(
-        "--out_folder",
-        type=str,
-        help="Path to a folder to output sequences, e.g. /home/out/",
-    )
-    argparser.add_argument(
-        "--pdb_path", type=str, default="", help="Path to a single PDB to be designed"
-    )
-    argparser.add_argument(
-        "--pdb_path_chains",
-        type=str,
-        default="",
-        help="Define which chains need to be designed for a single PDB ",
-    )
-    argparser.add_argument(
-        "--jsonl_path", type=str, help="Path to a folder with parsed pdb into jsonl"
-    )
-    argparser.add_argument(
-        "--chain_id_jsonl",
-        type=str,
-        default="",
-        help="Path to a dictionary specifying which chains need to be designed and which ones are fixed, if not specied all chains will be designed.",
-    )
-    argparser.add_argument(
-        "--fixed_positions_jsonl",
-        type=str,
-        default="",
-        help="Path to a dictionary with fixed positions",
-    )
-    argparser.add_argument(
-        "--omit_AAs",
-        type=list,
-        default="X",
-        help="Specify which amino acids should be omitted in the generated sequence, e.g. 'AC' would omit alanine and cystine.",
-    )
-    argparser.add_argument(
-        "--bias_AA_jsonl",
-        type=str,
-        default="",
-        help="Path to a dictionary which specifies AA composion bias if neededi, e.g. {A: -1.1, F: 0.7} would make A less likely and F more likely.",
-    )
-
-    argparser.add_argument(
-        "--bias_by_res_jsonl",
-        default="",
-        help="Path to dictionary with per position bias.",
-    )
-    argparser.add_argument(
-        "--omit_AA_jsonl",
-        type=str,
-        default="",
-        help="Path to a dictionary which specifies which amino acids need to be omited from design at specific chain indices",
-    )
-    argparser.add_argument(
-        "--pssm_jsonl", type=str, default="", help="Path to a dictionary with pssm"
-    )
-    argparser.add_argument(
-        "--pssm_multi",
-        type=float,
-        default=0.0,
-        help="A value between [0.0, 1.0], 0.0 means do not use pssm, 1.0 ignore MPNN predictions",
-    )
-    argparser.add_argument(
-        "--pssm_threshold",
-        type=float,
-        default=0.0,
-        help="A value between -inf + inf to restric per position AAs",
-    )
-    argparser.add_argument(
-        "--pssm_log_odds_flag", type=int, default=0, help="0 for False, 1 for True"
-    )
-    argparser.add_argument(
-        "--pssm_bias_flag", type=int, default=0, help="0 for False, 1 for True"
-    )
-
-    argparser.add_argument(
-        "--tied_positions_jsonl",
-        type=str,
-        default="",
-        help="Path to a dictionary with tied positions",
-    )
-
-    args = argparser.parse_args()
+    args = cli.argparser.parse_args()
     main(args)

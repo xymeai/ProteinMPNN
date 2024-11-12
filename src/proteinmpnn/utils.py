@@ -1,3 +1,8 @@
+"""
+A number of functions/classes are adopted from:
+https://github.com/jingraham/neurips19-graph-protein-design
+
+"""
 import itertools
 import json
 import time
@@ -6,8 +11,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# A number of functions/classes are adopted from: https://github.com/jingraham/neurips19-graph-protein-design
 
 
 def parse_fasta(filename, limit=-1, omit=[]) -> np.ndarray:
