@@ -1,13 +1,13 @@
 [build-system]
-requires = ["setuptools>=64.0.0", "setuptools_scm>=6.2.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling<=1.20"]
+build-backend = "hatchling.build"
 
 [project]
 name = "proteinmpnn-xyme"
 dynamic = ["version"]
 description = ""
 readme = "README.md"
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 authors = [{ name = "Adrian Schreyer" }]
 maintainers = [{ name = "Adrian Schreyer" }]
 classifiers = [
@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.10",
     "Typing :: Typed",
 ]
 
@@ -28,17 +28,35 @@ dependencies = [
     "torchaudio==2.0.2",
 ]
 
-[project.scripts]
-proteimpnn = "proteinmpnn.__main__:main"
+[dependency-groups]
+dev = [
+    "ruff>=0.7.3", 
+    "pytest>=8.0", 
+    "mypy>=1.10"
+]
 
-[project.optional-dependencies]
-dev = []
-tests = ["ruff", "pytest>=6.0"]
-typing = ['mypy>=1.10']
+[project.scripts]
+proteinmpnn = "proteinmpnn.__main__:main"
 
 [project.urls]
 repository = 'https://github.com/xymeai/proteinmpnn.git'
 issue-tracker = 'https://github.com/xymeai/proteinmpnn/issues'
+
+[tool.hatch.version]
+path = "src/proteinmpnn/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/proteinmpnn"]
+
+[tool.uv.sources]
+torch = { index = "pytorch" }
+torchvision = { index = "pytorch" }
+torchaudio = { index = "pytorch" }
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
 
 [tool.mypy]
 disallow_incomplete_defs = true
@@ -56,7 +74,7 @@ warn_unreachable = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-minversion = "6.0"
+minversion = "8.0"
 addopts = ["--doctest-modules"]
 testpaths = ["src", "tests"]
 
@@ -107,7 +125,3 @@ ignore = ["S101"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
-
-#.[tool.setuptools_scm]
-#local_scheme = "dirty-tag"
-#write_to = "src/proteinmpnn/version.py"

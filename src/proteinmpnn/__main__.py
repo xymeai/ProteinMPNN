@@ -25,8 +25,12 @@ from proteinmpnn.utils import (
 logger = logging.getLogger(__name__)
 
 
-def main(args):
+def main():
     """ """
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+
+    args = cli.argparser.parse_args(args=None if sys.argv[1:] else ['--help'])
+
     if args.seed:
         seed = args.seed
     else:
@@ -39,6 +43,8 @@ def main(args):
     hidden_dim = 128
     num_layers = 3
 
+    package_root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+
     if args.path_to_model_weights:
         model_folder_path = args.path_to_model_weights
 
@@ -47,7 +53,7 @@ def main(args):
 
     # custom path to directory containing model weights has not been given
     else:
-        file_path = os.path.join(os.path.dirname(__file__), "data", "weights")
+        file_path = os.path.join(package_root_dir, "data", "weights")
 
         # Use CA-only model weights
         if args.ca_only:
@@ -143,7 +149,7 @@ def main(args):
 
         logger.warning("bias by residue dictionary is loaded")
     else:
-        logger.warn("bias by residue dictionary is not loaded, or not provided")
+        logger.warning("bias by residue dictionary is not loaded, or not provided")
         bias_by_res_dict = None
 
     bias_AAs_np = np.zeros(len(alphabet))
@@ -692,8 +698,3 @@ def main(args):
                     f"{num_seqs} sequences of length {total_length} generated in {dt} "
                     f"seconds"
                 )
-
-
-if __name__ == "__main__":
-    args = cli.argparser.parse_args()
-    main(args)

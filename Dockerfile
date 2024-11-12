@@ -1,35 +1,28 @@
 FROM nvidia/cuda:11.8.0-base-ubuntu22.04
 
-# Set environment variables for build
-#ENV DEBIAN_FRONTEND=noninteractive \
-#    PYTHONDONTWRITEBYTECODE=1 \
-#    PYTHONUNBUFFERED=1 \
-#    PIP_NO_CACHE_DIR=1
+WORKDIR /app
 
-WORKDIR /app/ProteinMPNN
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
 
-# install Python using UV
+# Install dependencies using the lockfile and settings
 RUN --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
-    uv venv --python 3.10 \
-    && uv pip install --index-url https://download.pytorch.org/whl/cu118 \
-    torch==2.0.1  \
-    torchvision==0.15.2  \
-    torchaudio==2.0.2
+    --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --python 3.10.15 --frozen --no-install-project --dev
 
+# Then, add the rest of the project source code and install it
+# Installing separately from its dependencies allows optimal layer caching
+ADD . /app
+RUN --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --dev
 
-#RUN apt-get -q update \
-#    && apt-get install --no-install-recommends -y \
-#    python3.10 \
-#    python3-pip \
-#    && python3.10 -m pip install -q -U --no-cache-dir pip \
-#    && rm -rf /var/lib/apt/lists/* \
-#    && apt-get autoremove -y \
-#    && apt-get clean \
-#    && pip install --index-url https://download.pytorch.org/whl/cu118 \
-#    torch==2.0.1  \
-#    torchvision==0.15.2  \
-#    torchaudio==2.0.2
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
 
-COPY . .
-
+# Reset the entrypoint, don't invoke `uv`
+ENTRYPOINT ["/bin/bash"]

@@ -3,6 +3,8 @@ import argparse
 __all__ = ["argparser"]
 
 argparser = argparse.ArgumentParser(
+    prog='ProteinMPNN',
+    description='Robust deep learning--based protein sequence design using ProteinMPNN',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
 
