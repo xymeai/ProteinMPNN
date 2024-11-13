@@ -3,6 +3,7 @@ A number of functions/classes are adopted from:
 https://github.com/jingraham/neurips19-graph-protein-design
 
 """
+
 import itertools
 import json
 import time
@@ -11,31 +12,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-def parse_fasta(filename, limit=-1, omit=[]) -> np.ndarray:
-    """ """
-    header = []
-    sequence = []
-    lines = open(filename)
-
-    for line in lines:
-        line = line.rstrip()
-        if line[0] == ">":
-            if len(header) == limit:
-                break
-            header.append(line[1:])
-            sequence.append([])
-        else:
-            if omit:
-                line = [item for item in line if item not in omit]
-                line = "".join(line)
-            line = "".join(line)
-            sequence[-1].append(line)
-    lines.close()
-    sequence = ["".join(seq) for seq in sequence]
-
-    return np.array(header), np.array(sequence)
 
 
 def _scores(S, log_probs, mask):
@@ -49,15 +25,37 @@ def _scores(S, log_probs, mask):
     return scores
 
 
-def _S_to_seq(S: np.ndarray, mask: np.ndarray) -> str:
+def _S_to_seq(S: torch.tensor, mask: torch.tensor) -> str:
     """
+    Converts a tensor of one-hot encoded amino acids to a sequence string.
+
+    Parameters
+    ----------
+    S : torch.tensor
+        A tensor of S-values with shape (sequence_length,).
+    mask : torch.tensor
+        A tensor indicating which elements in the S tensor should be included in the
+        output sequence. The mask must have the same shape as the S tensor and contain
+        values of 0 or 1.
+
+    Returns
+    -------
+    str
+        A string representing the amino acid sequence derived from the masked S-values.
+
+    Notes
+    -----
+    The function assumes that the S tensor contains integer values corresponding to
+    amino acid indices, and the mask indicates whether each amino acid should be
+    included in the output sequence. The valid amino acids are represented by characters
+    in the alphabet "ACDEFGHIKLMNPQRSTVWYX".
 
     Examples
     --------
-    >>> seq_idx = [1, 2, 3, 4]
-    >>> bit_mask = [1, 0, 1, 1]
-    >>> _S_to_seq(seq_idx, bit_mask)
-    'ADE'
+    >>> S = torch.tensor([4, 6, 9, 10, 13, 17])
+    >>> mask = torch.tensor([1, 0, 1, 1, 1, 1])
+    >>> _S_to_seq(S, mask)
+    'FLMQV'
     """
     alphabet = "ACDEFGHIKLMNPQRSTVWYX"
 

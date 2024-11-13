@@ -3,36 +3,36 @@ import argparse
 __all__ = ["argparser"]
 
 argparser = argparse.ArgumentParser(
-    prog='ProteinMPNN',
-    description='Robust deep learning--based protein sequence design using ProteinMPNN',
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    prog="ProteinMPNN",
+    description="Robust deep learning--based protein sequence design using ProteinMPNN",
+    formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
 
 argparser.add_argument(
-    "--suppress_print", type=int, default=0, help="0 for False, 1 for True"
+    "--suppress-print", type=int, default=0, help="0 for False, 1 for True"
 )
 
 argparser.add_argument(
-    "--ca_only",
+    "--ca-only",
     action="store_true",
     default=False,
     help="Parse CA-only structures and use CA-only models (default: false)",
 )
 argparser.add_argument(
-    "--path_to_model_weights",
+    "--path-to-model-weights",
     type=str,
     default="",
     help="Path to model weights folder;",
 )
 argparser.add_argument(
-    "--model_name",
+    "--model-name",
     type=str,
     default="v_48_020",
     help="ProteinMPNN model name: v_48_002, v_48_010, v_48_020, v_48_030; "
     "v_48_010=version with 48 edges 0.10A noise",
 )
 argparser.add_argument(
-    "--use_soluble_model",
+    "--use-soluble-model",
     action="store_true",
     default=False,
     help="Flag to load ProteinMPNN weights trained on soluble proteins only.",
@@ -46,26 +46,26 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "--save_score",
+    "--save-score",
     type=int,
     default=0,
     help="0 for False, 1 for True; save score=-log_prob to npy files",
 )
 argparser.add_argument(
-    "--save_probs",
+    "--save-probs",
     type=int,
     default=0,
     help="0 for False, 1 for True; save MPNN predicted probabilites per position",
 )
 
 argparser.add_argument(
-    "--score_only",
+    "--score-only",
     type=int,
     default=0,
     help="0 for False, 1 for True; score input backbone-sequence pairs",
 )
 argparser.add_argument(
-    "--path_to_fasta",
+    "--path-to-fasta",
     type=str,
     default="",
     help="score provided input sequence in a fasta format; e.g. GGGGGG/PPPPS/WWW for "
@@ -73,21 +73,21 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "--conditional_probs_only",
+    "--conditional-probs-only",
     type=int,
     default=0,
     help="0 for False, 1 for True; output conditional probabilities p(s_i given the "
     "rest of the sequence and backbone)",
 )
 argparser.add_argument(
-    "--conditional_probs_only_backbone",
+    "--conditional-probs-only-backbone",
     type=int,
     default=0,
     help="0 for False, 1 for True; if true output conditional probabilities p(s_i "
     "given backbone)",
 )
 argparser.add_argument(
-    "--unconditional_probs_only",
+    "--unconditional-probs-only",
     type=int,
     default=0,
     help="0 for False, 1 for True; output unconditional probabilities p(s_i given "
@@ -95,29 +95,29 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "--backbone_noise",
+    "--backbone-noise",
     type=float,
     default=0.00,
     help="Standard deviation of Gaussian noise to add to backbone atoms",
 )
 argparser.add_argument(
-    "--num_seq_per_target",
+    "--num-seq-per-target",
     type=int,
     default=1,
     help="Number of sequences to generate per target",
 )
 argparser.add_argument(
-    "--batch_size",
+    "--batch-size",
     type=int,
     default=1,
     help="Batch size; can set higher for titan, quadro GPUs, reduce this if running "
     "out of GPU memory",
 )
 argparser.add_argument(
-    "--max_length", type=int, default=200000, help="Max sequence length"
+    "--max-length", type=int, default=200000, help="Max sequence length"
 )
 argparser.add_argument(
-    "--sampling_temp",
+    "--sampling-temp",
     type=str,
     default="0.1",
     help="A string of temperatures, 0.2 0.25 0.5. Sampling temperature for amino "
@@ -126,44 +126,44 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "--out_folder",
+    "--out-folder",
     type=str,
     help="Path to a folder to output sequences, e.g. /home/out/",
 )
 argparser.add_argument(
-    "--pdb_path", type=str, default="", help="Path to a single PDB to be designed"
+    "--pdb-path", type=str, default="", help="Path to a single PDB to be designed"
 )
 argparser.add_argument(
-    "--pdb_path_chains",
+    "--pdb-path-chains",
     type=str,
     default="",
     help="Define which chains need to be designed for a single PDB ",
 )
 argparser.add_argument(
-    "--jsonl_path", type=str, help="Path to a folder with parsed pdb into jsonl"
+    "--jsonl-path", type=str, help="Path to a folder with parsed pdb into jsonl"
 )
 argparser.add_argument(
-    "--chain_id_jsonl",
+    "--chain-id-jsonl",
     type=str,
     default="",
     help="Path to a dictionary specifying which chains need to be designed and which "
     "ones are fixed, if not specied all chains will be designed.",
 )
 argparser.add_argument(
-    "--fixed_positions_jsonl",
+    "--fixed-positions-jsonl",
     type=str,
     default="",
     help="Path to a dictionary with fixed positions",
 )
 argparser.add_argument(
-    "--omit_AAs",
+    "--omit-AAs",
     type=list,
     default="X",
     help="Specify which amino acids should be omitted in the generated sequence, "
     "e.g. 'AC' would omit alanine and cystine.",
 )
 argparser.add_argument(
-    "--bias_AA_jsonl",
+    "--bias-AA-jsonl",
     type=str,
     default="",
     help="Path to a dictionary which specifies AA composion bias if neededi, e.g. "
@@ -171,42 +171,42 @@ argparser.add_argument(
 )
 
 argparser.add_argument(
-    "--bias_by_res_jsonl",
+    "--bias-by-res-jsonl",
     default="",
     help="Path to dictionary with per position bias.",
 )
 argparser.add_argument(
-    "--omit_AA_jsonl",
+    "--omit-AA-jsonl",
     type=str,
     default="",
     help="Path to a dictionary which specifies which amino acids need to be omitted "
     "from design at specific chain indices",
 )
 argparser.add_argument(
-    "--pssm_jsonl", type=str, default="", help="Path to a dictionary with pssm"
+    "--pssm-jsonl", type=str, default="", help="Path to a dictionary with pssm"
 )
 argparser.add_argument(
-    "--pssm_multi",
+    "--pssm-multi",
     type=float,
     default=0.0,
     help="A value between [0.0, 1.0], 0.0 means do not use pssm, 1.0 ignore MPNN "
     "predictions",
 )
 argparser.add_argument(
-    "--pssm_threshold",
+    "--pssm-threshold",
     type=float,
     default=0.0,
     help="A value between -inf + inf to restric per position AAs",
 )
 argparser.add_argument(
-    "--pssm_log_odds_flag", type=int, default=0, help="0 for False, 1 for True"
+    "--pssm-log-odds-flag", type=int, default=0, help="0 for False, 1 for True"
 )
 argparser.add_argument(
-    "--pssm_bias_flag", type=int, default=0, help="0 for False, 1 for True"
+    "--pssm-bias_flag", type=int, default=0, help="0 for False, 1 for True"
 )
 
 argparser.add_argument(
-    "--tied_positions_jsonl",
+    "--tied-positions-jsonl",
     type=str,
     default="",
     help="Path to a dictionary with tied positions",
