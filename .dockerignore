@@ -1,5 +1,9 @@
 # Exclude the project virtual environment from image builds
 .venv
+.idea
+.mypy_cache
+.pytest_cache
+.ruff_cache
 
 helper_scripts
 examples

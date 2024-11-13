@@ -1,5 +1,5 @@
 version = 1
-requires-python = ">=3.10, <4"
+requires-python = ">=3.10"
 
 [[package]]
 name = "certifi"
@@ -303,24 +303,26 @@ dependencies = [
     { name = "torchvision" },
 ]
 
-[package.optional-dependencies]
-tests = [
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
     { name = "pytest" },
     { name = "ruff" },
-]
-typing = [
-    { name = "mypy" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "mypy", marker = "extra == 'typing'", specifier = ">=1.10" },
     { name = "numpy", specifier = "<2.0" },
-    { name = "pytest", marker = "extra == 'tests'", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'tests'", specifier = ">=0.7.3" },
     { name = "torch", specifier = "==2.0.1", index = "https://download.pytorch.org/whl/cu118" },
     { name = "torchaudio", specifier = "==2.0.2", index = "https://download.pytorch.org/whl/cu118" },
     { name = "torchvision", specifier = "==0.15.2", index = "https://download.pytorch.org/whl/cu118" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.10" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "ruff", specifier = ">=0.7.3" },
 ]
 
 [[package]]
