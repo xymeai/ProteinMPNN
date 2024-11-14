@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import random
-import subprocess
 import sys
 import time
 
@@ -27,7 +26,11 @@ logger = logging.getLogger(__name__)
 
 def main(args):
     """ """
-    logging.basicConfig(encoding="utf-8", level=logging.DEBUG)
+    logging.basicConfig(
+        encoding="utf-8",
+        level=logging.INFO,
+        format="ProteinMPNN - %(levelname)-7s - %(message)s",
+    )
 
     if args.seed:
         seed = args.seed
@@ -41,7 +44,7 @@ def main(args):
     hidden_dim = 128
     num_layers = 3
 
-    package_root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    package_root_dir = os.path.abspath(os.path.dirname(__file__))
 
     if args.path_to_model_weights:
         model_folder_path = args.path_to_model_weights
@@ -89,7 +92,7 @@ def main(args):
             chain_id_dict = json.loads(json_str)
     else:
         chain_id_dict = None
-        logger.warning("chain_id_jsonl is NOT loaded")
+        logger.debug("chain_id_jsonl is NOT loaded")
 
     if os.path.isfile(args.fixed_positions_jsonl):
         with open(args.fixed_positions_jsonl) as json_file:
@@ -97,7 +100,7 @@ def main(args):
         for json_str in json_list:
             fixed_positions_dict = json.loads(json_str)
     else:
-        logger.warning("fixed_positions_jsonl is NOT loaded")
+        logger.debug("fixed_positions_jsonl is NOT loaded")
         fixed_positions_dict = None
 
     if os.path.isfile(args.pssm_jsonl):
@@ -107,7 +110,7 @@ def main(args):
         for json_str in json_list:
             pssm_dict.update(json.loads(json_str))
     else:
-        logger.warning("pssm_jsonl is NOT loaded")
+        logger.debug("pssm_jsonl is NOT loaded")
         pssm_dict = None
 
     if os.path.isfile(args.omit_AA_jsonl):
@@ -116,7 +119,7 @@ def main(args):
         for json_str in json_list:
             omit_AA_dict = json.loads(json_str)
     else:
-        logger.warning("omit_AA_jsonl is NOT loaded")
+        logger.debug("omit_AA_jsonl is NOT loaded")
         omit_AA_dict = None
 
     if os.path.isfile(args.bias_AA_jsonl):
@@ -125,7 +128,7 @@ def main(args):
         for json_str in json_list:
             bias_AA_dict = json.loads(json_str)
     else:
-        logger.warning("bias_AA_jsonl is NOT loaded")
+        logger.debug("bias_AA_jsonl is NOT loaded")
         bias_AA_dict = None
 
     if os.path.isfile(args.tied_positions_jsonl):
@@ -134,8 +137,7 @@ def main(args):
         for json_str in json_list:
             tied_positions_dict = json.loads(json_str)
     else:
-        if print_all:
-            logger.warning("tied_positions_jsonl is NOT loaded")
+        logger.debug("tied_positions_jsonl is NOT loaded")
         tied_positions_dict = None
 
     if os.path.isfile(args.bias_by_res_jsonl):
@@ -145,9 +147,9 @@ def main(args):
         for json_str in json_list:
             bias_by_res_dict = json.loads(json_str)
 
-        logger.warning("bias by residue dictionary is loaded")
+        logger.debug("bias by residue dictionary is loaded")
     else:
-        logger.warning("bias by residue dictionary is not loaded, or not provided")
+        logger.debug("bias by residue dictionary is not loaded, or not provided")
         bias_by_res_dict = None
 
     bias_AAs_np = np.zeros(len(alphabet))
@@ -373,11 +375,12 @@ def main(args):
                             f"Score for {name_}_{fc} from FASTA, mean: {ns_mean_print}, std: {ns_std_print}, sample size: {ns_sample_size},  global score, mean: {global_ns_mean_print}, std: {global_ns_std_print}, sample size: {ns_sample_size}"
                         )
             elif args.conditional_probs_only:
-                logger.info(f"Calculating conditional probabilities for {name_}")
+                logger.info("Calculating conditional probabilities for %s.", name_)
                 conditional_probs_only_file = (
                     base_folder + "/conditional_probs_only/" + batch_clones[0]["name"]
                 )
                 log_conditional_probs_list = []
+
                 for j in range(NUM_BATCHES):
                     randn_1 = torch.randn(chain_M.shape, device=X.device)
                     log_conditional_probs = model.conditional_probs(
@@ -441,9 +444,9 @@ def main(args):
                     randn_1,
                 )
                 mask_for_loss = mask * chain_M * chain_M_pos
-                scores = _scores(
-                    S, log_probs, mask_for_loss
-                )  # score only the redesigned part
+
+                # score only the redesigned part
+                scores = _scores(S, log_probs, mask_for_loss)
                 native_score = scores.cpu().data.numpy()
                 global_scores = _scores(S, log_probs, mask)
 
@@ -455,7 +458,7 @@ def main(args):
                 score_file = base_folder + "/scores/" + batch_clones[0]["name"] + ".npz"
                 probs_file = base_folder + "/probs/" + batch_clones[0]["name"] + ".npz"
 
-                logger.info(f"Generating sequences for: {name_}")
+                logger.info("Generating sequences for: %s", name_)
 
                 t0 = time.time()
 
@@ -512,6 +515,7 @@ def main(args):
                                 )
                                 # Compute scores
                                 S_sample = sample_dict["S"]
+
                             log_probs = model(
                                 X,
                                 S_sample,
@@ -523,13 +527,13 @@ def main(args):
                                 use_input_decoding_order=True,
                                 decoding_order=sample_dict["decoding_order"],
                             )
+
                             mask_for_loss = mask * chain_M * chain_M_pos
                             scores = _scores(S_sample, log_probs, mask_for_loss)
                             scores = scores.cpu().data.numpy()
 
-                            global_scores = _scores(
-                                S_sample, log_probs, mask
-                            )  # score the whole structure-sequence
+                            # score the whole structure-sequence
+                            global_scores = _scores(S_sample, log_probs, mask)
                             global_scores = global_scores.cpu().data.numpy()
 
                             all_probs_list.append(
@@ -537,6 +541,7 @@ def main(args):
                             )
                             all_log_probs_list.append(log_probs.cpu().data.numpy())
                             S_sample_list.append(S_sample.cpu().data.numpy())
+
                             for b_ix in range(BATCH_COPIES):
                                 masked_chain_length_list = (
                                     masked_chain_length_list_list[b_ix]
@@ -558,6 +563,7 @@ def main(args):
                                 global_score = global_scores[b_ix]
                                 global_score_list.append(global_score)
                                 native_seq = _S_to_seq(S[b_ix], chain_M[b_ix])
+
                                 if b_ix == 0 and j == 0 and temp == temperatures[0]:
                                     start = 0
                                     end = 0
@@ -574,6 +580,7 @@ def main(args):
                                         )
                                     )
                                     l0 = 0
+
                                     for mc_length in list(
                                         np.array(masked_chain_length_list)[
                                             np.argsort(masked_list)
@@ -610,27 +617,14 @@ def main(args):
                                             precision=4,
                                         )
                                     )
-                                    script_dir = os.path.dirname(
-                                        os.path.realpath(__file__)
-                                    )
-                                    try:
-                                        commit_str = (
-                                            subprocess.check_output(
-                                                f"git --git-dir {script_dir}/.git rev-parse HEAD",
-                                                shell=True,
-                                                stderr=subprocess.DEVNULL,
-                                            )
-                                            .decode()
-                                            .strip()
-                                        )
-                                    except subprocess.CalledProcessError:
-                                        commit_str = "unknown"
+
                                     if args.ca_only:
                                         print_model_name = "CA_model_name"
                                     else:
                                         print_model_name = "model_name"
+
                                     f.write(
-                                        f">{name_}, score={native_score_print}, global_score={global_native_score_print}, fixed_chains={print_visible_chains}, designed_chains={print_masked_chains}, {print_model_name}={args.model_name}, git_hash={commit_str}, seed={seed}\n{native_seq}\n"
+                                        f">{name_}, score={native_score_print}, global_score={global_native_score_print}, fixed_chains={print_visible_chains}, designed_chains={print_masked_chains}, {print_model_name}={args.model_name}, seed={seed}\n{native_seq}\n"
                                     )  # write the native sequence
                                 start = 0
                                 end = 0
@@ -693,15 +687,18 @@ def main(args):
                 total_length = X.shape[1]
 
                 logger.info(
-                    f"{num_seqs} sequences of length {total_length} generated in {dt} "
-                    f"seconds"
+                    "%s sequences of length %s generated in %s seconds",
+                    num_seqs,
+                    total_length,
+                    dt,
                 )
 
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         prog="ProteinMPNN",
-        description="Robust deep learning--based protein sequence design using ProteinMPNN",
+        description="Robust deep learning--based protein sequence design using "
+        "ProteinMPNN",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
@@ -765,16 +762,16 @@ if __name__ == "__main__":
         "--path-to-fasta",
         type=str,
         default="",
-        help="score provided input sequence in a fasta format; e.g. GGGGGG/PPPPS/WWW for "
-        "chains A, B, C sorted alphabetically and separated by /",
+        help="score provided input sequence in a fasta format; e.g. GGGGGG/PPPPS/WWW "
+        "for chains A, B, C sorted alphabetically and separated by /",
     )
 
     argparser.add_argument(
         "--conditional-probs-only",
         type=int,
         default=0,
-        help="0 for False, 1 for True; output conditional probabilities p(s_i given the "
-        "rest of the sequence and backbone)",
+        help="0 for False, 1 for True; output conditional probabilities p(s_i given "
+        "the rest of the sequence and backbone)",
     )
     argparser.add_argument(
         "--conditional-probs-only-backbone",
@@ -807,8 +804,8 @@ if __name__ == "__main__":
         "--batch-size",
         type=int,
         default=1,
-        help="Batch size; can set higher for titan, quadro GPUs, reduce this if running "
-        "out of GPU memory",
+        help="Batch size; can set higher for titan, quadro GPUs, reduce this if "
+        "running out of GPU memory",
     )
     argparser.add_argument(
         "--max-length", type=int, default=200000, help="Max sequence length"
@@ -818,8 +815,8 @@ if __name__ == "__main__":
         type=str,
         default="0.1",
         help="A string of temperatures, 0.2 0.25 0.5. Sampling temperature for amino "
-        "acids. Suggested values 0.1, 0.15, 0.2, 0.25, 0.3. Higher values will lead "
-        "to more diversity.",
+        "acids. Suggested values 0.1, 0.15, 0.2, 0.25, 0.3. Higher values will "
+        "lead to more diversity.",
     )
 
     argparser.add_argument(
@@ -843,8 +840,8 @@ if __name__ == "__main__":
         "--chain-id-jsonl",
         type=str,
         default="",
-        help="Path to a dictionary specifying which chains need to be designed and which "
-        "ones are fixed, if not specied all chains will be designed.",
+        help="Path to a dictionary specifying which chains need to be designed and "
+        "which ones are fixed, if not specied all chains will be designed.",
     )
     argparser.add_argument(
         "--fixed-positions-jsonl",
@@ -863,8 +860,8 @@ if __name__ == "__main__":
         "--bias-AA-jsonl",
         type=str,
         default="",
-        help="Path to a dictionary which specifies AA composion bias if neededi, e.g. "
-        "{A: -1.1, F: 0.7} would make A less likely and F more likely.",
+        help="Path to a dictionary which specifies AA composition bias if needed, "
+        "e.g. {A: -1.1, F: 0.7} would make A less likely and F more likely.",
     )
 
     argparser.add_argument(
@@ -876,8 +873,8 @@ if __name__ == "__main__":
         "--omit-AA-jsonl",
         type=str,
         default="",
-        help="Path to a dictionary which specifies which amino acids need to be omitted "
-        "from design at specific chain indices",
+        help="Path to a dictionary which specifies which amino acids need to be "
+        "omitted from design at specific chain indices",
     )
     argparser.add_argument(
         "--pssm-jsonl", type=str, default="", help="Path to a dictionary with pssm"

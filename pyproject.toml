@@ -63,7 +63,13 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = ["--doctest-modules"]
-testpaths = ["src", "tests"]
+norecursedirs = [
+    "data",
+    "colab_notebooks",
+    "training",
+    "helper_scripts",
+    "examples"
+]
 
 [tool.ruff]
 

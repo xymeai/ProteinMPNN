@@ -21,3 +21,5 @@ RUN --mount=from=ghcr.io/astral-sh/uv,source=/uv,target=/bin/uv \
 
 # Place executables in the environment at the front of the path
 ENV PATH="/app/.venv/bin:$PATH"
+
+ENTRYPOINT [ "python", "proteinmpnn.py"]
